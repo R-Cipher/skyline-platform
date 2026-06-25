@@ -1,0 +1,43 @@
+# ---- Terraform ----
+# Local .terraform directories (downloaded providers/modules)
+**/.terraform/*
+
+# State files - NEVER commit these (can contain secrets, e.g. SQL passwords in later labs)
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+
+# Crash log files
+crash.log
+crash.*.log
+
+# Variable files that may contain real/sensitive values
+*.tfvars
+*.tfvars.json
+!example.tfvars          # allow a sanitized example file if you create one
+
+# Plan output files
+*.tfplan
+tfplan
+
+# CLI override files
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# ---- IMPORTANT: keep the provider lock file ----
+# .terraform.lock.hcl SHOULD be committed (pins provider versions for the team).
+# It is intentionally NOT ignored here.
+
+# ---- Local / editor ----
+.vscode/
+*.code-workspace
+
+# ---- Local scratch notes (keep your raw notes private) ----
+*-notes.md
+*-transcript.txt
+
+# ---- OS files ----
+.DS_Store
+Thumbs.db
