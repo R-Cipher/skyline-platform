@@ -1,5 +1,6 @@
 # bootstrap/bootstrap.ps1  — run ONCE to create the Terraform state backend
 $ErrorActionPreference = "Stop"
+$PSNativeCommandUseErrorActionPreference = $true
 
 $location      = "eastus2"
 $rgName        = "rg-skyline-tfstate-eus2"

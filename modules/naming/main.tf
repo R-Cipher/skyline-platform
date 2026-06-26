@@ -3,6 +3,7 @@ locals {
   loc_short = {
     eastus2  = "eus2"
     eastus   = "eus"
+    centralus = "cus"
     westus2  = "wus2"
   }[var.location]
 

@@ -4,7 +4,7 @@ variable "environment" {
 }
 variable "location" {
   type    = string
-  default = "eastus2"
+  default = "centralus"
 }
 variable "owner" {
   type    = string
