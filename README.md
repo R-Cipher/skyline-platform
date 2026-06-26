@@ -2,7 +2,7 @@
 
 A hands-on, production-style Azure platform built entirely with **Infrastructure as Code (Terraform)**, developed as a progressive 5-part lab series. Each part solves a realistic business problem the way a cloud engineering team would in production — with version-controlled infrastructure, secure-by-default design, automation, and observability.
 
-> **Current status:** ✅ Lab 01 complete · Labs 02–05 in progress
+> **Current status:** ✅ Lab 01-02 complete · Labs 03–05 in progress
 
 ---
 
@@ -49,7 +49,7 @@ flowchart TB
 | Lab | Focus | Status | Key Azure Services |
 |-----|-------|--------|--------------------|
 | **[01 — Foundation](docs/lab-01-foundation.md)** | IaC bootstrap, remote state, governance | ✅ Complete | Storage, Resource Groups, Azure Policy, Entra ID / RBAC |
-| **02 — Web Platform** | App hosting + managed DB + secrets | ⏳ In progress | App Service, Azure SQL, Key Vault, Managed Identity |
+| **[02 — Web Platform](docs/lab-02-web-app.md)** | App hosting + managed DB + secrets | ✅ Complete | App Service, Azure SQL, Key Vault, Managed Identity |
 | **03 — Secure Networking** | Private connectivity, no public data tier | ⬜ Planned | VNet, Private Endpoints, Private DNS, NSGs |
 | **04 — CI/CD** | Secretless automated deployments | ⬜ Planned | GitHub Actions, Entra Workload Identity (OIDC) |
 | **05 — Observability & Scale** | Monitoring, autoscale, edge security | ⬜ Planned | Log Analytics, App Insights, Autoscale, Front Door + WAF |
@@ -63,6 +63,9 @@ Significant design decisions are documented as ADRs:
 - [ADR-0001 — Remote state in Azure Storage](docs/adr/0001-remote-state-in-azure-storage.md)
 - [ADR-0002 — Entra ID / RBAC auth over shared storage keys](docs/adr/0002-rbac-over-storage-keys.md)
 - [ADR-0003 — Imperative bootstrap for the state backend](docs/adr/0003-imperative-bootstrap.md)
+- [ADR-0004 — App Service (PaaS) over containers or VMs](docs/adr/0004-app-service-over-containers.md)
+- [ADR-0005 — Managed identity + Key Vault references over secrets in config](docs/adr/0005-managed-identity-key-vault-references.md)
+- [ADR-0006 — Dedicated Pay-As-You-Go subscription for the lab environment](docs/adr/0006-payg-subscription-for-labs.md)
 
 ---
 
