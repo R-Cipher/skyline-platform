@@ -2,7 +2,7 @@
 
 A hands-on, production-style Azure platform built entirely with **Infrastructure as Code (Terraform)**, developed as a progressive 5-part lab series. Each part solves a realistic business problem the way a cloud engineering team would in production — with version-controlled infrastructure, secure-by-default design, automation, and observability.
 
-> **Current status:** ✅ Lab 01-02 complete · Labs 03–05 in progress
+> **Current status:** ✅ Lab 01-03 complete · Labs 04–05 in progress
 
 ---
 
@@ -50,7 +50,7 @@ flowchart TB
 |-----|-------|--------|--------------------|
 | **[01 — Foundation](docs/lab-01-foundation.md)** | IaC bootstrap, remote state, governance | ✅ Complete | Storage, Resource Groups, Azure Policy, Entra ID / RBAC |
 | **[02 — Web Platform](docs/lab-02-web-app.md)** | App hosting + managed DB + secrets | ✅ Complete | App Service, Azure SQL, Key Vault, Managed Identity |
-| **03 — Secure Networking** | Private connectivity, no public data tier | ⬜ Planned | VNet, Private Endpoints, Private DNS, NSGs |
+| **[03 — Secure Networking](docs/lab-03-networking.md)** | Private connectivity, no public data tier | ✅ Complete | VNet, Private Endpoints, Private DNS, NSGs |
 | **04 — CI/CD** | Secretless automated deployments | ⬜ Planned | GitHub Actions, Entra Workload Identity (OIDC) |
 | **05 — Observability & Scale** | Monitoring, autoscale, edge security | ⬜ Planned | Log Analytics, App Insights, Autoscale, Front Door + WAF |
 
@@ -66,6 +66,9 @@ Significant design decisions are documented as ADRs:
 - [ADR-0004 — App Service (PaaS) over containers or VMs](docs/adr/0004-app-service-over-containers.md)
 - [ADR-0005 — Managed identity + Key Vault references over secrets in config](docs/adr/0005-managed-identity-key-vault-references.md)
 - [ADR-0006 — Dedicated Pay-As-You-Go subscription for the lab environment](docs/adr/0006-payg-subscription-for-labs.md)
+- [ADR-0007 — Private Endpoints Over Service Endpoints](docs/adr/0007-private-endpoints-over-service-endpoints.md)
+- [ADR-0008 — Regional VNet Integration Over an App Service Environment (ASE)](docs/adr/0008-regional-vnet-integration-over-ase.md)
+- [ADR-0009 — Private DNS Is Mandatory for Private Endpoints](docs/adr/0009-private-dns-is-mandatory.md)
 
 ---
 

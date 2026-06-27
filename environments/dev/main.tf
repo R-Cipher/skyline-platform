@@ -38,19 +38,21 @@ resource "azurerm_service_plan" "main" {
 }
 
 resource "azurerm_linux_web_app" "main" {
-  name                = "app-${module.naming.base}" # must be globally unique
-  resource_group_name = azurerm_resource_group.platform.name
-  location            = azurerm_resource_group.platform.location
-  service_plan_id     = azurerm_service_plan.main.id
-  https_only          = true
-  tags                = module.naming.tags
+  name                      = "app-${module.naming.base}" # must be globally unique
+  resource_group_name       = azurerm_resource_group.platform.name
+  location                  = azurerm_resource_group.platform.location
+  service_plan_id           = azurerm_service_plan.main.id
+  https_only                = true
+  tags                      = module.naming.tags
+  virtual_network_subnet_id = azurerm_subnet.app_integration.id
 
   identity {
     type = "SystemAssigned" # Azure manages the credential lifecycle for us
   }
 
   site_config {
-    minimum_tls_version = "1.2"
+    minimum_tls_version    = "1.2"
+    vnet_route_all_enabled = true # route ALL outbound through the VNet
     application_stack {
       node_version = "20-lts" # swap to your stack (dotnet, python, etc.)
     }
@@ -82,14 +84,15 @@ resource "random_password" "sql_admin" {
 }
 
 resource "azurerm_mssql_server" "main" {
-  name                         = "sql-${module.naming.base}" # globally unique
-  resource_group_name          = azurerm_resource_group.platform.name
-  location                     = azurerm_resource_group.platform.location
-  version                      = "12.0"
-  administrator_login          = "skylineadmin"
-  administrator_login_password = random_password.sql_admin.result
-  minimum_tls_version          = "1.2"
-  tags                         = module.naming.tags
+  name                          = "sql-${module.naming.base}" # globally unique
+  resource_group_name           = azurerm_resource_group.platform.name
+  location                      = azurerm_resource_group.platform.location
+  version                       = "12.0"
+  administrator_login           = "skylineadmin"
+  administrator_login_password  = random_password.sql_admin.result
+  minimum_tls_version           = "1.2"
+  tags                          = module.naming.tags
+  public_network_access_enabled = false
 }
 
 resource "azurerm_mssql_database" "main" {
@@ -99,13 +102,7 @@ resource "azurerm_mssql_database" "main" {
   tags      = module.naming.tags
 }
 
-# TEMPORARY: allow Azure services to reach SQL. We REMOVE this in Lab 3.
-resource "azurerm_mssql_firewall_rule" "allow_azure" {
-  name             = "AllowAzureServices"
-  server_id        = azurerm_mssql_server.main.id
-  start_ip_address = "0.0.0.0"
-  end_ip_address   = "0.0.0.0" # the 0.0.0.0/0.0.0.0 rule = "Allow Azure services"
-}
+
 
 data "azurerm_client_config" "current" {}
 
@@ -118,6 +115,11 @@ resource "azurerm_key_vault" "main" {
   rbac_authorization_enabled = true  # RBAC instead of legacy access policies
   purge_protection_enabled   = false # true in prod; false in lab so you can fully destroy
   tags                       = module.naming.tags
+  network_acls {
+    default_action = "Deny"
+    bypass         = "AzureServices"
+    ip_rules       = ["99.148.228.38/32"]
+  }
 }
 
 # Let YOU (the deployer) write secrets
@@ -142,3 +144,115 @@ resource "azurerm_role_assignment" "app_kv_reader" {
   principal_id         = azurerm_linux_web_app.main.identity[0].principal_id
 }
 
+resource "azurerm_virtual_network" "main" {
+  name                = "vnet-${module.naming.base}"
+  resource_group_name = azurerm_resource_group.platform.name
+  location            = azurerm_resource_group.platform.location
+  address_space       = ["10.20.0.0/16"]
+  tags                = module.naming.tags
+}
+
+# Subnet for App Service regional VNet integration — must be DELEGATED and used by nothing else
+resource "azurerm_subnet" "app_integration" {
+  name                 = "snet-app-integration"
+  resource_group_name  = azurerm_resource_group.platform.name
+  virtual_network_name = azurerm_virtual_network.main.name
+  address_prefixes     = ["10.20.1.0/24"]
+
+  delegation {
+    name = "appservice-delegation"
+    service_delegation {
+      name    = "Microsoft.Web/serverFarms"
+      actions = ["Microsoft.Network/virtualNetworks/subnets/action"]
+    }
+  }
+}
+
+# Subnet that will host the private endpoints
+resource "azurerm_subnet" "private_endpoints" {
+  name                 = "snet-private-endpoints"
+  resource_group_name  = azurerm_resource_group.platform.name
+  virtual_network_name = azurerm_virtual_network.main.name
+  address_prefixes     = ["10.20.2.0/24"]
+}
+
+resource "azurerm_private_dns_zone" "sql" {
+  name                = "privatelink.database.windows.net"
+  resource_group_name = azurerm_resource_group.platform.name
+  tags                = module.naming.tags
+}
+
+resource "azurerm_private_dns_zone" "kv" {
+  name                = "privatelink.vaultcore.azure.net"
+  resource_group_name = azurerm_resource_group.platform.name
+  tags                = module.naming.tags
+}
+
+# Link the zones to the VNet so resources in it use them for resolution
+resource "azurerm_private_dns_zone_virtual_network_link" "sql" {
+  name                  = "sql-dns-link"
+  resource_group_name   = azurerm_resource_group.platform.name
+  private_dns_zone_name = azurerm_private_dns_zone.sql.name
+  virtual_network_id    = azurerm_virtual_network.main.id
+  tags                  = module.naming.tags
+}
+
+resource "azurerm_private_dns_zone_virtual_network_link" "kv" {
+  name                  = "kv-dns-link"
+  resource_group_name   = azurerm_resource_group.platform.name
+  private_dns_zone_name = azurerm_private_dns_zone.kv.name
+  virtual_network_id    = azurerm_virtual_network.main.id
+  tags                  = module.naming.tags
+}
+
+resource "azurerm_private_endpoint" "sql" {
+  name                = "pe-sql-${module.naming.base}"
+  resource_group_name = azurerm_resource_group.platform.name
+  location            = azurerm_resource_group.platform.location
+  subnet_id           = azurerm_subnet.private_endpoints.id
+  tags                = module.naming.tags
+
+  private_service_connection {
+    name                           = "sql-connection"
+    private_connection_resource_id = azurerm_mssql_server.main.id
+    subresource_names              = ["sqlServer"]
+    is_manual_connection           = false
+  }
+
+  private_dns_zone_group {
+    name                 = "sql-dns-zone-group"
+    private_dns_zone_ids = [azurerm_private_dns_zone.sql.id]
+  }
+}
+
+resource "azurerm_private_endpoint" "kv" {
+  name                = "pe-kv-${module.naming.base}"
+  resource_group_name = azurerm_resource_group.platform.name
+  location            = azurerm_resource_group.platform.location
+  subnet_id           = azurerm_subnet.private_endpoints.id
+  tags                = module.naming.tags
+
+  private_service_connection {
+    name                           = "kv-connection"
+    private_connection_resource_id = azurerm_key_vault.main.id
+    subresource_names              = ["vault"]
+    is_manual_connection           = false
+  }
+
+  private_dns_zone_group {
+    name                 = "kv-dns-zone-group"
+    private_dns_zone_ids = [azurerm_private_dns_zone.kv.id]
+  }
+}
+
+resource "azurerm_network_security_group" "pe" {
+  name                = "nsg-pe-${module.naming.base}"
+  resource_group_name = azurerm_resource_group.platform.name
+  location            = azurerm_resource_group.platform.location
+  tags                = module.naming.tags
+}
+
+resource "azurerm_subnet_network_security_group_association" "pe" {
+  subnet_id                 = azurerm_subnet.private_endpoints.id
+  network_security_group_id = azurerm_network_security_group.pe.id
+}
